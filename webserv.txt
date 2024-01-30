@@ -1,0 +1,62 @@
+1.  Parse Config File:
+    Get information like the server's
+    a. IP address
+    b. Port
+    c. Any other relevant settings
+
+
+2.  Create a Non-blocking Socket:
+    a. Use socket() to create a socket.
+    b. Use fcntl() to set the socket to non-blocking mode.
+    Ex: int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        fcntl(sockfd, F_SETFL, O_NONBLOCK);
+
+
+3. Bind and Listen:
+    a. Use bind() to bind the socket to a specific IP address and port.
+    b. Use listen() to listen for incoming connections.
+    Ex: struct sockaddr_in server_addr;
+        bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+        listen(sockfd, SOMAXCONN);
+
+
+4.  Handle Incoming Connections:
+    a. Use poll() to multiplex I/O events (read/write) on your socket.
+    b. Handle new connections, and add the new socket to the list of sockets to poll.
+    Ex: struct pollfd fds[MAX_FDS];
+        fds[0].fd = sockfd;
+        fds[0].events = POLLIN;
+        while (true)
+        {
+            int result = poll(fds, num_fds, timeout);
+            a. Handle poll result
+            b. Check for events on each socket in fds
+            c. Accept new connections, read data, etc.
+        }
+
+
+5.  Accept New Connections:
+    a. When poll() indicates that there's data to read on the main server socket, use accept() to accept a new connection.
+    b. Set the new connection socket to non-blocking.
+    Ex: int newsockfd = accept(sockfd, (struct sockaddr*)&client_addr, &addrlen);
+        fcntl(newsockfd, F_SETFL, O_NONBLOCK);
+
+
+6.  Handle Requests:
+    a. Read incoming data from the client using non-blocking reads.
+    b. Parse the HTTP request and extract relevant information (e.g., request method, URI).
+    c. Handle static content and CGI scripts accordingly.
+
+
+7.  Execute CGI Scripts:
+    a. If the requested resource is a CGI script, spawn a child process using fork() and use dup2() to redirect standard input/output.
+    b. Set environment variables (e.g., QUERY_STRING, REQUEST_METHOD, etc.).
+    c. Use exec() family of functions to replace the child process with the CGI script.
+
+
+8.  Send Response:
+    a. Construct an appropriate HTTP response and send it back to the client.
+
+
+9.  Clean Up:
+    a. Close sockets and perform any necessary cleanup when the server is shutting down.
